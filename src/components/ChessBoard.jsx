@@ -79,7 +79,7 @@ function ChessBoard() {
   }
 
   // 定義士兵可以移動的範圍
-  const getAvailableMovesForPawn = (col, row) => {
+  const getAvailableMovesForPawn = (row, col) => {
     const { color } = board[row][col]
     let directions = null
 
@@ -199,13 +199,13 @@ function ChessBoard() {
   }
 
   // 定義棋子可以移動的範圍
-  const getAvailableMoves = (col, row) => {
+  const getAvailableMoves = (row, col) => {
     const piece = board[row][col]
     const { type } = piece
 
     switch (type) {
       case 'pawn':
-        return getAvailableMovesForPawn(col, row)
+        return getAvailableMovesForPawn(row, col)
       default:
         return []
     }
@@ -303,7 +303,7 @@ function ChessBoard() {
         const piece = board[row][col]
         if (piece && piece.color === color && piece.type !== 'king') {
           // 獲取這個棋子的所有可能移動
-          const moves = getAvailableMoves(col, row)
+          const moves = getAvailableMoves(row, col)
           for (const move of moves) {
             // 暫存原始位置的棋子
             const originalPiece = tmpBoard[move.row][move.col]
@@ -424,6 +424,42 @@ function ChessBoard() {
     }
   }
 
+  const classMove = (col, rowIndex, colIndex) => {
+    if (col !== null) {
+      return null
+    }
+
+    let canMove = false
+    // 檢查是否有選中的棋子
+    if (!isSelected()) {
+      return null
+    }
+
+    // 檢查目標位置的棋子
+    const targetPiece = board[rowIndex][colIndex]
+
+    // 如果目標位置有棋子且顏色相同，則不顯示移動樣式
+    if (targetPiece && targetPiece.color === selectedStatus.piece.color) {
+      return null
+    }
+
+    validMoves.forEach((dir) => {
+      if (dir.row === rowIndex && dir.col === colIndex) {
+        // 如果是國王，需要額外檢查目標位置是否安全
+        if (selectedStatus.piece.type === 'king') {
+          canMove = !isSquareUnderAttack(
+            rowIndex,
+            colIndex,
+            selectedStatus.piece.color,
+          )
+        } else {
+          canMove = true
+        }
+      }
+    })
+    return canMove ? 'canMove' : null
+  }
+
   return (
     <div className='chess-board'>
       {board.map((row, rowIndex) => (
@@ -434,7 +470,8 @@ function ChessBoard() {
                 className={boxClass(rowIndex, colIndex)}
                 onClick={() => clickPiece(rowIndex, colIndex)}
               >
-                <ChessPiece type={col?.type} color={col?.color} />
+                {col && <ChessPiece type={col?.type} color={col?.color} />}
+                <div className={classMove(col, rowIndex, colIndex)}></div>
               </div>
             </div>
           ))}
