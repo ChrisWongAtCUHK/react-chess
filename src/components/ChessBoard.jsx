@@ -12,7 +12,7 @@ const initialBoardState = () => {
 }
 
 function ChessBoard() {
-  const [board] = useState(() => {
+  const [board, setBoard] = useState(() => {
     const newBoard = initialBoardState()
     // 初始化黑方棋子
     newBoard[0][0] = { type: 'rook', color: 'black' }
@@ -42,10 +42,379 @@ function ChessBoard() {
 
     return newBoard
   })
+  const [whoesTurn, setWhoesTurn] = useState('white')
+  const [selectedStatus, setSelectedStatus] = useState({
+    piece: {},
+    position: {},
+  })
+  const [validMoves, setValidMoves] = useState([])
 
   const boxClass = () => {
     let className = 'box'
     return className
+  }
+
+  const isSelected = () => {
+    return Object.keys(selectedStatus.piece).length > 0
+  }
+
+  const canMove = () => {
+    return validMoves.length > 0
+  }
+
+  // 檢查位置是否在棋盤內
+  const isValidPosition = (row, col) => {
+    if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) {
+      return true
+    }
+
+    return false
+  }
+
+  // 定義士兵可以移動的範圍
+  const getAvailableMovesForPawn = (col, row) => {
+    const { color } = board[row][col]
+    let directions = null
+
+    const blackDirections = [
+      { dx: 0, dy: 1 },
+      { dx: 0, dy: 2 },
+      { dx: 1, dy: 1 },
+      { dx: -1, dy: 1 },
+    ]
+
+    const whiteDirections = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: -2 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: -1 },
+    ]
+
+    const moves = []
+
+    // 檢查顏色
+    if (color === 'black') {
+      directions = blackDirections
+    } else if (color === 'white') {
+      directions = whiteDirections
+    }
+
+    // 檢查每個方向
+    directions.forEach(({ dx, dy }) => {
+      // 計算座標
+      const newCol = col + dx
+      const newRow = row + dy
+
+      // 檢查是否在棋盤範圍內
+      if (isValidPosition(newCol, newRow)) {
+        // 獲取目標棋子
+        const targetPiece = board[newRow][newCol]
+
+        // 步數為2時，檢查是否第一次移動
+        if (Math.abs(dy) === 2) {
+          if (color === 'white' && row !== 6) {
+            return
+          }
+          if (color === 'black' && row !== 1) {
+            return
+          }
+        }
+
+        // 檢查是否為吃子
+        if (Math.abs(dx) === 1 && Math.abs(dy) === 1) {
+          if (targetPiece === null || targetPiece.color === color) {
+            return
+          }
+        } else if (
+          Math.abs(dx) === 0 &&
+          Math.abs(dy) === 1 &&
+          targetPiece != null
+        ) {
+          // 檢查前方有異色棋子時，不能移動
+          return
+        } else if (Math.abs(dx) === 0 && Math.abs(dy) === 2) {
+          // 移動兩步時，先檢查目標位置是否有棋子
+          if (targetPiece != null) {
+            if (color === 'white' && board[newRow + 1][newCol] != null) {
+              return
+            }
+
+            if (color === 'black' && board[newRow - 1][newCol] != null) {
+              return
+            }
+          }
+        }
+
+        // 加入可以移動的座標
+        moves.push({ row: newRow, col: newCol })
+      }
+    })
+
+    return moves
+  }
+
+  // 定義王可以移動的範圍
+  const getAvailableMovesForKing = (col, row) => {
+    const { color } = board[row][col]
+    const moves = []
+
+    // 王的移動方向
+    const kingDirections = [
+      { dx: 0, dy: 1 },
+      { dx: 0, dy: -1 },
+      { dx: 1, dy: 0 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 1 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: 1 },
+      { dx: -1, dy: -1 },
+    ]
+
+    kingDirections.forEach(({ dx, dy }) => {
+      const newCol = col + dx
+      const newRow = row + dy
+
+      // 檢查是否在棋盤範圍內
+      if (isValidPosition(newRow, newCol)) {
+        // 獲取目標棋子
+        const targetPiece = board[newRow][newCol]
+        // 檢查目標位置是否為空或者是敵方棋子
+        if (targetPiece === null || targetPiece.color !== color) {
+          // 檢查目標位置是否安全（不在對方的攻擊範圍內）
+          if (!isSquareUnderAttack(newRow, newCol, color)) {
+            moves.push({ row: newRow, col: newCol })
+          }
+        }
+      }
+    })
+
+    return moves
+  }
+
+  // 定義棋子可以移動的範圍
+  const getAvailableMoves = (col, row) => {
+    const piece = board[row][col]
+    const { type } = piece
+
+    switch (type) {
+      case 'pawn':
+        return getAvailableMovesForPawn(col, row)
+      default:
+        return []
+    }
+  }
+
+  // 獲取王的位置
+  const findKing = (color) => {
+    for (let row = 0; row < SIZE; row++) {
+      for (let col = 0; col < SIZE; col++) {
+        const piece = board[row][col]
+        if (piece && piece.type === 'king' && piece.color === color) {
+          return { row, col }
+        }
+      }
+    }
+    return null
+  }
+
+  // 檢查某個格子是否在對方的攻擊範圍內
+  const isSquareUnderAttack = (row, col, kingColor, aBoard = board) => {
+    // 檢查每個格子
+    for (let checkRow = 0; checkRow < SIZE; checkRow++) {
+      for (let checkCol = 0; checkCol < SIZE; checkCol++) {
+        const piece = aBoard[checkRow][checkCol]
+        if (piece && piece.color !== kingColor) {
+          // 獲取棋子的攻擊範圍
+          const moves = []
+          switch (piece.type) {
+            case 'pawn': {
+              // 兵的攻擊範圍只有斜向
+              const pawnAttackDirections =
+                piece.color === 'black'
+                  ? [
+                      { dx: 1, dy: 1 },
+                      { dx: -1, dy: 1 },
+                    ] // 黑兵的攻擊方向
+                  : [
+                      { dx: 1, dy: -1 },
+                      { dx: -1, dy: -1 },
+                    ] // 白兵的攻擊方向
+
+              pawnAttackDirections.forEach(({ dx, dy }) => {
+                const newRow = checkRow + dy
+                const newCol = checkCol + dx
+                if (isValidPosition(newRow, newCol)) {
+                  moves.push({ row: newRow, col: newCol })
+                }
+              })
+              break
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 判斷輸贏(移動棋子後，切換回合前進行)
+  const checkWin = () => {
+    // 獲取對方顏色
+    const color = whoesTurn === 'white' ? 'black' : 'white'
+
+    // 獲取對方王的位置
+    const kingPosition = findKing(color)
+
+    // 如果對方王不存在，遊戲結束
+    if (!kingPosition) {
+      return true // 對方王不存在，對方輸贏
+    }
+
+    // 檢查國王是否被將軍
+    const isKingInCheck = isSquareUnderAttack(
+      kingPosition.row,
+      kingPosition.col,
+      color,
+    )
+
+    if (!isKingInCheck) {
+      return false // 如果國王沒有被將軍，遊戲繼續
+    }
+
+    // 檢查是否是將死
+    // 1. 檢查國王是否有安全的移動位置
+    const kingMoves = getAvailableMovesForKing(
+      kingPosition.col,
+      kingPosition.row,
+    )
+    if (kingMoves.length > 0) {
+      return false // 國王還可以移動，不是將死
+    }
+
+    // 2. 檢查其他棋子是否能解救國王
+    for (let row = 0; row < SIZE; row++) {
+      for (let col = 0; col < SIZE; col++) {
+        const tmpBoard = board.map((r) => [...r])
+        const piece = board[row][col]
+        if (piece && piece.color === color && piece.type !== 'king') {
+          // 獲取這個棋子的所有可能移動
+          const moves = getAvailableMoves(col, row)
+          for (const move of moves) {
+            // 暫存原始位置的棋子
+            const originalPiece = tmpBoard[move.row][move.col]
+
+            // 模擬移動
+            tmpBoard[move.row][move.col] = piece
+            tmpBoard[row][col] = null
+
+            // 檢查移動後國王是否安全
+            const isSafe = !isSquareUnderAttack(
+              kingPosition.row,
+              kingPosition.col,
+              color,
+              tmpBoard,
+            )
+
+            // 還原棋盤
+            tmpBoard[row][col] = piece
+            tmpBoard[move.row][move.col] = originalPiece
+
+            setBoard(tmpBoard.map((r) => [...r]))
+
+            if (isSafe) {
+              return false // 找到一個可以解救國王的移動，不是將死
+            }
+          }
+        }
+      }
+    }
+
+    // 如果所有檢查都通過，確認是將死
+    return true
+  }
+
+  // 清除選中狀態
+  const cleanSelected = () => {
+    setSelectedStatus({
+      piece: {},
+      position: {},
+    })
+    setValidMoves([])
+  }
+
+  const movePiece = (
+    row,
+    col,
+    originalRow = selectedStatus.position.row,
+    originalCol = selectedStatus.position.col,
+  ) => {
+    const originPiece = board[originalRow][originalCol]
+
+    // 判斷移動是否合法
+    validMoves.forEach((validDir) => {
+      if (validDir.row === row && validDir.col === col) {
+        // 移動棋子
+        board[row][col] = originPiece
+        board[originalRow][originalCol] = null
+        setSelectedStatus({
+          piece: selectedStatus.piece,
+          position: { row, col },
+        })
+
+        //
+        if (checkWin()) {
+          alert(
+            `${originPiece.color === 'white' ? '白方' : '黑方'}勝利！，請刷新頁面重玩。`,
+          )
+
+          return
+        }
+
+        if (whoesTurn === 'white') {
+          // TODO: AI 走子
+          setWhoesTurn('black')
+          // 在玩家（白方）移動後，觸發 AI（黑方）走子
+        } else if (whoesTurn === 'black') {
+          setWhoesTurn('white')
+        }
+
+        cleanSelected()
+      }
+    })
+  }
+
+  const clickPiece = (row, col) => {
+    // 如果是 AI 的回合（黑色方），不允許玩家操作
+    if (whoesTurn === 'black' && board[row][col]?.color !== 'black') {
+      return
+    }
+
+    // 選擇旗子
+    if (
+      // 有點到棋子，無選擇棋子狀態
+      (board[row][col] !== null && !isSelected()) ||
+      // 有點到棋子，有選擇棋子狀態，且點到同色棋子
+      (board[row][col] !== null &&
+        isSelected() &&
+        board[row][col].color === selectedStatus.piece.color)
+    ) {
+      // 只允許移動當前回合方的棋子
+      if (board[row][col].color !== whoesTurn) {
+        return
+      }
+
+      // 加入選中狀態
+      setSelectedStatus({
+        piece: board[row][col],
+        position: { row, col },
+      })
+
+      setValidMoves(getAvailableMoves(row, col))
+    } else if (isSelected() && canMove()) {
+      // 移動棋子
+      movePiece(row, col)
+    } else if (isSelected() && !canMove()) {
+      // 沒有合法移動，清除選中狀態
+      cleanSelected()
+    }
   }
 
   return (
@@ -54,7 +423,10 @@ function ChessBoard() {
         <div key={rowIndex} className='chess-row'>
           {row.map((col, colIndex) => (
             <div key={colIndex} className='chess-col'>
-              <div className={boxClass()}>
+              <div
+                className={boxClass()}
+                onClick={() => clickPiece(rowIndex, colIndex)}
+              >
                 <ChessPiece type={col?.type} color={col?.color} />
               </div>
             </div>
