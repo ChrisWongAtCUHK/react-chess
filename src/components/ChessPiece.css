@@ -1,0 +1,12 @@
+.chess-pieces {
+  font-size: 24px;
+  text-align: center;
+}
+
+.black {
+  fill: #000000;
+}
+
+.white {
+  fill: #ffffff;
+}
