@@ -49,8 +49,15 @@ function ChessBoard() {
   })
   const [validMoves, setValidMoves] = useState([])
 
-  const boxClass = () => {
+  const boxClass = (row, col) => {
     let className = 'box'
+    if (
+      selectedStatus.position &&
+      selectedStatus.position.row === row &&
+      selectedStatus.position.col === col
+    ) {
+      className += ' selected'
+    }
     return className
   }
 
@@ -424,7 +431,7 @@ function ChessBoard() {
           {row.map((col, colIndex) => (
             <div key={colIndex} className='chess-col'>
               <div
-                className={boxClass()}
+                className={boxClass(rowIndex, colIndex)}
                 onClick={() => clickPiece(rowIndex, colIndex)}
               >
                 <ChessPiece type={col?.type} color={col?.color} />
