@@ -636,10 +636,11 @@ function ChessBoard() {
         const toSquare = parseSquare(bestMove.substring(2, 4))
 
         // 為AI移動設置選中狀態
-        setSelectedStatus({
+        const currentSelectedStatus = {
           piece: aBoard[fromSquare.row][fromSquare.col],
           position: { row: fromSquare.row, col: fromSquare.col },
-        })
+        }
+        setSelectedStatus(currentSelectedStatus)
 
         // 設置有效移動
         const moves = [
@@ -650,7 +651,13 @@ function ChessBoard() {
         ]
         setValidMoves(moves)
 
-        movePiece(toSquare.row, toSquare.col, moves, currentTurn)
+        movePiece(
+          toSquare.row,
+          toSquare.col,
+          moves,
+          currentTurn,
+          currentSelectedStatus,
+        )
       }
     } catch (error) {
       console.error('AI走子時發生錯誤:', error)
@@ -662,9 +669,10 @@ function ChessBoard() {
     col,
     moves = validMoves,
     currentTurn = whoesTurn,
-    originalRow = selectedStatus.position.row,
-    originalCol = selectedStatus.position.col,
+    currentSelectedStatus = selectedStatus
   ) => {
+    const originalRow = currentSelectedStatus.position.row
+    const originalCol = currentSelectedStatus.position.col
     const originPiece = board[originalRow][originalCol]
 
     console.log(moves)
@@ -679,7 +687,7 @@ function ChessBoard() {
         setBoard(tempBoard)
 
         setSelectedStatus({
-          piece: selectedStatus.piece,
+          piece: currentSelectedStatus.piece,
           position: { row, col },
         })
 
