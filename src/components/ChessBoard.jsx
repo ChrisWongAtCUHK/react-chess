@@ -406,58 +406,113 @@ function ChessBoard() {
     return null
   }
 
+  // 輔助函式：檢查車、象、后 的射線是否能射到目標格
+  const isRayAttacking = (
+    fromR,
+    fromC,
+    toR,
+    toC,
+    type,
+    currentBoard = board,
+  ) => {
+    const dr = toR - fromR
+    const dc = toC - fromC
+    const absDr = Math.abs(dr)
+    const absDc = Math.abs(dc)
+
+    // 檢查類型限制
+    if (type === 'rook' && dr !== 0 && dc !== 0) return false
+    if (type === 'bishop' && absDr !== absDc) return false
+    if (type === 'queen' && dr !== 0 && dc !== 0 && absDr !== absDc)
+      return false
+
+    // 計算步進方向
+    const stepR = dr === 0 ? 0 : dr / absDr
+    const stepC = dc === 0 ? 0 : dc / absDc
+
+    let currentR = fromR + stepR
+    let currentC = fromC + stepC
+
+    // 延著射線前進，檢查中間有沒有棋子阻擋
+    while (currentR !== toR || currentC !== toC) {
+      if (currentBoard[currentR][currentC] !== null) {
+        return false // 被別的棋子擋住了
+      }
+      currentR += stepR
+      currentC += stepC
+    }
+    return true
+  }
+
   // 檢查某個格子是否在對方的攻擊範圍內
   const isSquareUnderAttack = (row, col, kingColor, currentBoard = board) => {
-    // 檢查每個格子
-    for (let checkRow = 0; checkRow < SIZE; checkRow++) {
-      for (let checkCol = 0; checkCol < SIZE; checkCol++) {
-        const piece = currentBoard[checkRow][checkCol]
-        if (piece && piece.color !== kingColor) {
-          // 獲取棋子的攻擊範圍
-          const moves = []
-          switch (piece.type) {
-            case 'pawn': {
-              // 兵的攻擊範圍只有斜向
-              const pawnAttackDirections =
-                piece.color === 'black'
-                  ? [
-                      { dx: 1, dy: 1 },
-                      { dx: -1, dy: 1 },
-                    ] // 黑兵的攻擊方向
-                  : [
-                      { dx: 1, dy: -1 },
-                      { dx: -1, dy: -1 },
-                    ] // 白兵的攻擊方向
+    const opponentColor = kingColor === 'white' ? 'black' : 'white'
 
-              pawnAttackDirections.forEach(({ dx, dy }) => {
-                const newRow = checkRow + dy
-                const newCol = checkCol + dx
-                if (isValidPosition(newRow, newCol)) {
-                  moves.push({ row: newRow, col: newCol })
-                }
-              })
-              break
+    // 檢查每個格子
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const piece = currentBoard[r][c]
+        if (!piece || piece.color !== opponentColor) continue
+        // 根據棋子類型，單純檢查其物理攻擊路徑是否能到達目標格 (row, col)
+        switch (piece.type) {
+          case 'pawn': {
+            const dy = piece.color === 'black' ? 1 : -1
+            // 兵只能斜吃
+            if (r + dy === row && (c + 1 === col || c - 1 === col)) {
+              return true
             }
+            break
           }
+          case 'knight': {
+            const knightMoves = [
+              { dr: 1, dc: 2 },
+              { dr: -1, dc: 2 },
+              { dr: 1, dc: -2 },
+              { dr: -1, dc: -2 },
+              { dr: 2, dc: 1 },
+              { dr: -2, dc: 1 },
+              { dr: 2, dc: -1 },
+              { dr: -2, dc: -1 },
+            ]
+            if (
+              knightMoves.some(({ dr, dc }) => r + dr === row && c + dc === col)
+            ) {
+              return true
+            }
+            break
+          }
+          case 'king': {
+            // 敵方國王一步之遙的格子也算受攻擊
+            if (Math.abs(r - row) <= 1 && Math.abs(c - col) <= 1) {
+              return true
+            }
+            break
+          }
+          case 'rook':
+          case 'bishop':
+          case 'queen': {
+            // 直線與斜線棋子：檢查是否有障礙物擋住射線
+            if (isRayAttacking(r, c, row, col, piece.type, currentBoard)) {
+              return true
+            }
+            break
+          }
+          default:
+            break
         }
       }
     }
+
+    return false
   }
 
-  // 判斷輸贏(移動棋子後，切換回合前進行)
   const checkWin = (currentBoard = board) => {
-    // 獲取對方顏色
     const color = whoesTurn === 'white' ? 'black' : 'white'
-
-    // 獲取對方王的位置
     const kingPosition = findKing(color, currentBoard)
 
-    // 如果對方王不存在，遊戲結束
-    if (!kingPosition) {
-      return true // 對方王不存在，對方輸贏
-    }
+    if (!kingPosition) return true // 國王不見了，直接判輸
 
-    // 檢查國王是否被將軍
+    // 1. 檢查國王目前是否被將軍
     const isKingInCheck = isSquareUnderAttack(
       kingPosition.row,
       kingPosition.col,
@@ -465,60 +520,56 @@ function ChessBoard() {
       currentBoard,
     )
 
-    if (!isKingInCheck) {
-      return false // 如果國王沒有被將軍，遊戲繼續
-    }
+    // 2. 蒐集防守方所有棋子的所有合法走法，看看能不能解圍
+    let hasValidMove = false
 
-    // 檢查是否是將死
-    // 1. 檢查國王是否有安全的移動位置
-    const kingMoves = getAvailableMovesForKing(
-      kingPosition.col,
-      kingPosition.row,
-    )
-    if (kingMoves.length > 0) {
-      return false // 國王還可以移動，不是將死
-    }
-
-    // 2. 檢查其他棋子是否能解救國王
     for (let row = 0; row < SIZE; row++) {
       for (let col = 0; col < SIZE; col++) {
-        const tmpBoard = currentBoard.map((r) => [...r])
-        const piece = tmpBoard[row][col]
-        if (piece && piece.color === color && piece.type !== 'king') {
-          // 獲取這個棋子的所有可能移動
-          const moves = getAvailableMoves(row, col)
-          for (const move of moves) {
-            // 暫存原始位置的棋子
-            const originalPiece = tmpBoard[move.row][move.col]
+        const piece = currentBoard[row][col]
+        if (!piece || piece.color !== color) continue
 
-            // 模擬移動
-            tmpBoard[move.row][move.col] = piece
-            tmpBoard[row][col] = null
+        // 取得該棋子的基本移動範圍
+        const moves = getAvailableMoves(row, col, currentBoard)
 
-            // 檢查移動後國王是否安全
-            const isSafe = !isSquareUnderAttack(
-              kingPosition.row,
-              kingPosition.col,
-              color,
-              tmpBoard,
-            )
+        for (const move of moves) {
+          // 建立一個純粹用來模擬的虛擬棋盤，不影響 React State
+          const tmpBoard = currentBoard.map((r) => [...r])
 
-            // 還原棋盤
-            tmpBoard[row][col] = piece
-            tmpBoard[move.row][move.col] = originalPiece
+          // 模擬移動棋子
+          tmpBoard[move.row][move.col] = piece
+          tmpBoard[row][col] = null
 
-            setBoard(tmpBoard.map((r) => [...r]))
+          // 如果移動的是王，要更新王的位置來做檢查
+          const nextKingPos =
+            piece.type === 'king'
+              ? { row: move.row, col: move.col }
+              : kingPosition
 
-            if (isSafe) {
-              return false // 找到一個可以解救國王的移動，不是將死
-            }
+          // 檢查這個模擬移動後，自己的國王安全了嗎？
+          const stillInCheck = isSquareUnderAttack(
+            nextKingPos.row,
+            nextKingPos.col,
+            color,
+            tmpBoard,
+          )
+
+          if (!stillInCheck) {
+            hasValidMove = true // 找到至少一種解法 (走位避開、墊子、或把將軍的棋子吃掉)
+            break
           }
         }
+        if (hasValidMove) break
       }
+      if (hasValidMove) break
     }
 
-    // 如果所有檢查都通過，確認是將死
-    return true
+    // 如果被將軍，且沒有任何可以解圍的走法 ＝ 將死 (Checkmate)
+    if (isKingInCheck && !hasValidMove) {
+      return true
+    }
+
+    // 註：如果沒被將軍但完全不能動，國際棋局上叫「逼和 (Stalemate)」，此處先視為一般繼續
+    return false
   }
 
   // 清除選中狀態
