@@ -650,7 +650,7 @@ function ChessBoard() {
         ]
         setValidMoves(moves)
 
-        movePiece(toSquare.row, toSquare.col, moves)
+        movePiece(toSquare.row, toSquare.col, moves, currentTurn)
       }
     } catch (error) {
       console.error('AI走子時發生錯誤:', error)
@@ -661,6 +661,7 @@ function ChessBoard() {
     row,
     col,
     moves = validMoves,
+    currentTurn = whoesTurn,
     originalRow = selectedStatus.position.row,
     originalCol = selectedStatus.position.col,
   ) => {
@@ -691,15 +692,15 @@ function ChessBoard() {
           return
         }
 
-        if (whoesTurn === 'white') {
-          const currentTurn = 'black'
+        if (currentTurn === 'white') {
+          const myTurn = 'black'
           // AI 走子
-          setWhoesTurn(currentTurn)
+          setWhoesTurn(myTurn)
           // 在玩家（白方）移動後，觸發 AI（黑方）走子
           queueMicrotask(() => {
-            makeAIMove(tempBoard, currentTurn)
+            makeAIMove(tempBoard, myTurn)
           })
-        } else if (whoesTurn === 'black') {
+        } else if (currentTurn === 'black') {
           setWhoesTurn('white')
         }
 
