@@ -530,14 +530,14 @@ function ChessBoard() {
   }
 
   // 生成FEN格式棋盤狀態（用於Stockfish）
-  const generateFEN = () => {
+  const generateFEN = (aBoard = board, currentTurn = whoesTurn) => {
     let fen = ''
     let emptyCount = 0
 
     // 遍歷棋盤
     for (let row = 0; row < SIZE; row += 1) {
       for (let col = 0; col < SIZE; col += 1) {
-        const piece = board[row][col]
+        const piece = aBoard[row][col]
         if (piece === null) {
           emptyCount += 1
         } else {
@@ -591,7 +591,7 @@ function ChessBoard() {
     }
 
     // 添加當前回合方
-    fen += ` ${whoesTurn === 'white' ? 'w' : 'b'}`
+    fen += ` ${currentTurn === 'white' ? 'w' : 'b'}`
 
     // 添加王車易位權限（這裡簡化處理）
     fen += ' KQkq'
@@ -613,7 +613,7 @@ function ChessBoard() {
   }
 
   // AI走棋
-  const makeAIMove = async () => {
+  const makeAIMove = async (aBoard = board, currentTurn = whoesTurn) => {
     if (!stockfishReady) {
       console.error('Stockfish引擎未就緒')
       return
@@ -621,7 +621,8 @@ function ChessBoard() {
 
     try {
       // 生成當前局面的FEN
-      const fen = generateFEN()
+      const fen = generateFEN(aBoard, currentTurn)
+      console.log('當前局面FEN:', fen)
 
       // 設置當前局面
       await stockfishService.setPosition(fen)
@@ -636,7 +637,7 @@ function ChessBoard() {
 
         // 為AI移動設置選中狀態
         setSelectedStatus({
-          piece: board[fromSquare.row][fromSquare.col],
+          piece: aBoard[fromSquare.row][fromSquare.col],
           position: { row: fromSquare.row, col: fromSquare.col },
         })
 
@@ -663,12 +664,17 @@ function ChessBoard() {
   ) => {
     const originPiece = board[originalRow][originalCol]
 
+    console.log(validMoves)
     // 判斷移動是否合法
     validMoves.forEach((validDir) => {
       if (validDir.row === row && validDir.col === col) {
         // 移動棋子
-        board[row][col] = originPiece
-        board[originalRow][originalCol] = null
+        const tempBoard = board.map((r) => [...r])
+        tempBoard[row][col] = originPiece
+        tempBoard[originalRow][originalCol] = null
+
+        setBoard(tempBoard)
+
         setSelectedStatus({
           piece: selectedStatus.piece,
           position: { row, col },
@@ -684,11 +690,12 @@ function ChessBoard() {
         }
 
         if (whoesTurn === 'white') {
-          // TODO: AI 走子
-          setWhoesTurn('black')
+          const currentTurn = 'black'
+          // AI 走子
+          setWhoesTurn(currentTurn)
           // 在玩家（白方）移動後，觸發 AI（黑方）走子
           queueMicrotask(() => {
-            makeAIMove()
+            makeAIMove(tempBoard, currentTurn)
           })
         } else if (whoesTurn === 'black') {
           setWhoesTurn('white')
