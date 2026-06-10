@@ -636,15 +636,17 @@ function ChessBoard() {
 
         // 為AI移動設置選中狀態
         setSelectedStatus({
-          piece: [fromSquare.row][fromSquare.col],
+          piece: board[fromSquare.row][fromSquare.col],
           position: { row: fromSquare.row, col: fromSquare.col },
         })
 
         // 設置有效移動
-        setValidMoves({
-          row: toSquare.row,
-          col: toSquare.col,
-        })
+        setValidMoves([
+          {
+            row: toSquare.row,
+            col: toSquare.col,
+          },
+        ])
 
         movePiece(toSquare.row, toSquare.col)
       }
