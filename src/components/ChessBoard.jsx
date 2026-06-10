@@ -164,8 +164,8 @@ function ChessBoard() {
   }
 
   // 定義王可以移動的範圍
-  const getAvailableMovesForKing = (row, col) => {
-    const { color } = board[row][col]
+  const getAvailableMovesForKing = (row, col, currentBoard = board) => {
+    const { color } = currentBoard[row][col]
     const moves = []
 
     // 王的移動方向
@@ -187,7 +187,7 @@ function ChessBoard() {
       // 檢查是否在棋盤範圍內
       if (isValidPosition(newRow, newCol)) {
         // 獲取目標棋子
-        const targetPiece = board[newRow][newCol]
+        const targetPiece = currentBoard[newRow][newCol]
         // 檢查目標位置是否為空或者是敵方棋子
         if (targetPiece === null || targetPiece.color !== color) {
           // 檢查目標位置是否安全（不在對方的攻擊範圍內）
@@ -202,8 +202,8 @@ function ChessBoard() {
   }
 
   // 定義皇后可以移動的範圍
-  const getAvailableMovesForQueen = (row, col) => {
-    const { color } = board[row][col]
+  const getAvailableMovesForQueen = (row, col, currentBoard = board) => {
+    const { color } = currentBoard[row][col]
     const directions = [
       { dx: 1, dy: 0 },
       { dx: -1, dy: 0 },
@@ -228,7 +228,7 @@ function ChessBoard() {
 
         if (isValidPosition(newRow, newCol)) {
           // 獲取目標棋子
-          const targetPiece = board[newRow][newCol]
+          const targetPiece = currentBoard[newRow][newCol]
 
           // 檢查目標方格是否為空或異色
           if (targetPiece === null || targetPiece.color !== color) {
@@ -249,8 +249,8 @@ function ChessBoard() {
   }
 
   // 定義車可以移動的範圍
-  const getAvailableMovesForRook = (row, col) => {
-    const { color } = board[row][col]
+  const getAvailableMovesForRook = (row, col, currentBoard = board) => {
+    const { color } = currentBoard[row][col]
     const directions = [
       { dx: 1, dy: 0 },
       { dx: -1, dy: 0 },
@@ -271,7 +271,7 @@ function ChessBoard() {
 
         if (isValidPosition(newRow, newCol)) {
           // 獲取目標棋子
-          const targetPiece = board[newRow][newCol]
+          const targetPiece = currentBoard[newRow][newCol]
 
           // 檢查目標方格是否為空或異色
           if (targetPiece === null || targetPiece.color !== color) {
@@ -292,8 +292,8 @@ function ChessBoard() {
   }
 
   // 定義騎士可以移動的範圍
-  const getAvailableMovesForKnight = (row, col) => {
-    const { color } = board[row][col]
+  const getAvailableMovesForKnight = (row, col, currentBoard = board) => {
+    const { color } = currentBoard[row][col]
     const directions = [
       { dx: 1, dy: 2 },
       { dx: -1, dy: 2 },
@@ -315,7 +315,7 @@ function ChessBoard() {
       // 檢查是否在棋盤範圍內
       if (isValidPosition(newRow, newCol)) {
         // 獲取目標棋子
-        const targetPiece = board[newRow][newCol]
+        const targetPiece = currentBoard[newRow][newCol]
 
         // 檢查目標方格是否為空或異色
         if (targetPiece === null || targetPiece.color !== color) {
@@ -328,8 +328,8 @@ function ChessBoard() {
   }
 
   // 定義主教可以移動的範圍
-  const getAvailableMovesForBishop = (row, col) => {
-    const { color } = board[row][col]
+  const getAvailableMovesForBishop = (row, col, currentBoard = board) => {
+    const { color } = currentBoard[row][col]
     const directions = [
       { dx: 1, dy: 1 },
       { dx: -1, dy: 1 },
@@ -350,7 +350,7 @@ function ChessBoard() {
 
         if (isValidPosition(newRow, newCol)) {
           // 獲取目標棋子
-          const targetPiece = board[newRow][newCol]
+          const targetPiece = currentBoard[newRow][newCol]
 
           // 檢查目標方格是否為空或異色
           if (targetPiece === null || targetPiece.color !== color) {
@@ -371,33 +371,33 @@ function ChessBoard() {
   }
 
   // 定義棋子可以移動的範圍
-  const getAvailableMoves = (row, col) => {
-    const piece = board[row][col]
+  const getAvailableMoves = (row, col, currentBoard = board) => {
+    const piece = currentBoard[row][col]
     const { type } = piece
 
     switch (type) {
       case 'king':
-        return getAvailableMovesForKing(row, col)
+        return getAvailableMovesForKing(row, col, currentBoard)
       case 'queen':
-        return getAvailableMovesForQueen(row, col)
+        return getAvailableMovesForQueen(row, col, currentBoard)
       case 'rook':
-        return getAvailableMovesForRook(row, col)
+        return getAvailableMovesForRook(row, col, currentBoard)
       case 'knight':
-        return getAvailableMovesForKnight(row, col)
+        return getAvailableMovesForKnight(row, col, currentBoard)
       case 'bishop':
-        return getAvailableMovesForBishop(row, col)
+        return getAvailableMovesForBishop(row, col, currentBoard)
       case 'pawn':
-        return getAvailableMovesForPawn(row, col)
+        return getAvailableMovesForPawn(row, col, currentBoard)
       default:
         return []
     }
   }
 
   // 獲取王的位置
-  const findKing = (color) => {
+  const findKing = (color, currentBoard = board) => {
     for (let row = 0; row < SIZE; row++) {
       for (let col = 0; col < SIZE; col++) {
-        const piece = board[row][col]
+        const piece = currentBoard[row][col]
         if (piece && piece.type === 'king' && piece.color === color) {
           return { row, col }
         }
@@ -407,11 +407,11 @@ function ChessBoard() {
   }
 
   // 檢查某個格子是否在對方的攻擊範圍內
-  const isSquareUnderAttack = (row, col, kingColor, aBoard = board) => {
+  const isSquareUnderAttack = (row, col, kingColor, currentBoard = board) => {
     // 檢查每個格子
     for (let checkRow = 0; checkRow < SIZE; checkRow++) {
       for (let checkCol = 0; checkCol < SIZE; checkCol++) {
-        const piece = aBoard[checkRow][checkCol]
+        const piece = currentBoard[checkRow][checkCol]
         if (piece && piece.color !== kingColor) {
           // 獲取棋子的攻擊範圍
           const moves = []
@@ -445,12 +445,12 @@ function ChessBoard() {
   }
 
   // 判斷輸贏(移動棋子後，切換回合前進行)
-  const checkWin = () => {
+  const checkWin = (currentBoard = board) => {
     // 獲取對方顏色
     const color = whoesTurn === 'white' ? 'black' : 'white'
 
     // 獲取對方王的位置
-    const kingPosition = findKing(color)
+    const kingPosition = findKing(color, currentBoard)
 
     // 如果對方王不存在，遊戲結束
     if (!kingPosition) {
@@ -462,6 +462,7 @@ function ChessBoard() {
       kingPosition.row,
       kingPosition.col,
       color,
+      currentBoard,
     )
 
     if (!isKingInCheck) {
@@ -481,8 +482,8 @@ function ChessBoard() {
     // 2. 檢查其他棋子是否能解救國王
     for (let row = 0; row < SIZE; row++) {
       for (let col = 0; col < SIZE; col++) {
-        const tmpBoard = board.map((r) => [...r])
-        const piece = board[row][col]
+        const tmpBoard = currentBoard.map((r) => [...r])
+        const piece = tmpBoard[row][col]
         if (piece && piece.color === color && piece.type !== 'king') {
           // 獲取這個棋子的所有可能移動
           const moves = getAvailableMoves(row, col)
@@ -530,14 +531,14 @@ function ChessBoard() {
   }
 
   // 生成FEN格式棋盤狀態（用於Stockfish）
-  const generateFEN = (aBoard = board, currentTurn = whoesTurn) => {
+  const generateFEN = (currentBoard = board, currentTurn = whoesTurn) => {
     let fen = ''
     let emptyCount = 0
 
     // 遍歷棋盤
     for (let row = 0; row < SIZE; row += 1) {
       for (let col = 0; col < SIZE; col += 1) {
-        const piece = aBoard[row][col]
+        const piece = currentBoard[row][col]
         if (piece === null) {
           emptyCount += 1
         } else {
@@ -613,7 +614,7 @@ function ChessBoard() {
   }
 
   // AI走棋
-  const makeAIMove = async (aBoard = board, currentTurn = whoesTurn) => {
+  const makeAIMove = async (currentBoard = board, currentTurn = whoesTurn) => {
     if (!stockfishReady) {
       console.error('Stockfish引擎未就緒')
       return
@@ -621,7 +622,7 @@ function ChessBoard() {
 
     try {
       // 生成當前局面的FEN
-      const fen = generateFEN(aBoard, currentTurn)
+      const fen = generateFEN(currentBoard, currentTurn)
       console.log('當前局面FEN:', fen)
 
       // 設置當前局面
@@ -637,7 +638,7 @@ function ChessBoard() {
 
         // 為AI移動設置選中狀態
         const currentSelectedStatus = {
-          piece: aBoard[fromSquare.row][fromSquare.col],
+          piece: currentBoard[fromSquare.row][fromSquare.col],
           position: { row: fromSquare.row, col: fromSquare.col },
         }
         setSelectedStatus(currentSelectedStatus)
@@ -657,6 +658,7 @@ function ChessBoard() {
           moves,
           currentTurn,
           currentSelectedStatus,
+          currentBoard,
         )
       }
     } catch (error) {
@@ -669,18 +671,19 @@ function ChessBoard() {
     col,
     moves = validMoves,
     currentTurn = whoesTurn,
-    currentSelectedStatus = selectedStatus
+    currentSelectedStatus = selectedStatus,
+    currentBoard = board,
   ) => {
     const originalRow = currentSelectedStatus.position.row
     const originalCol = currentSelectedStatus.position.col
-    const originPiece = board[originalRow][originalCol]
+    const originPiece = currentBoard[originalRow][originalCol]
 
     console.log(moves)
     // 判斷移動是否合法
     moves.forEach((validDir) => {
       if (validDir.row === row && validDir.col === col) {
         // 移動棋子
-        const tempBoard = board.map((r) => [...r])
+        const tempBoard = currentBoard.map((r) => [...r])
         tempBoard[row][col] = originPiece
         tempBoard[originalRow][originalCol] = null
 
@@ -692,7 +695,7 @@ function ChessBoard() {
         })
 
         //
-        if (checkWin()) {
+        if (checkWin(tempBoard)) {
           alert(
             `${originPiece.color === 'white' ? '白方' : '黑方'}勝利！，請刷新頁面重玩。`,
           )
