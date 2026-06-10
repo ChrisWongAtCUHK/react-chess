@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ChessPiece from './ChessPiece.jsx'
 import './ChessBoard.css'
+import stockfishService from '../services/stockfish.service'
 
 const SIZE = 8
 
@@ -48,6 +49,8 @@ function ChessBoard() {
     position: {},
   })
   const [validMoves, setValidMoves] = useState([])
+
+  const [stockfishReady, setStockfishReady] = useState(false)
 
   const boxClass = (row, col) => {
     let className = 'box'
@@ -526,6 +529,130 @@ function ChessBoard() {
     setValidMoves([])
   }
 
+  // 生成FEN格式棋盤狀態（用於Stockfish）
+  const generateFEN = () => {
+    let fen = ''
+    let emptyCount = 0
+
+    // 遍歷棋盤
+    for (let row = 0; row < SIZE; row += 1) {
+      for (let col = 0; col < SIZE; col += 1) {
+        const piece = board[row][col]
+        if (piece === null) {
+          emptyCount += 1
+        } else {
+          // 如果之前有空格，先加入數字
+          if (emptyCount > 0) {
+            fen += emptyCount
+            emptyCount = 0
+          }
+          // 添加棋子符號
+          let pieceSymbol = ''
+          switch (piece.type) {
+            case 'pawn':
+              pieceSymbol = 'p'
+              break
+            case 'rook':
+              pieceSymbol = 'r'
+              break
+            case 'knight':
+              pieceSymbol = 'n'
+              break
+            case 'bishop':
+              pieceSymbol = 'b'
+              break
+            case 'queen':
+              pieceSymbol = 'q'
+              break
+            case 'king':
+              pieceSymbol = 'k'
+              break
+            default:
+              // 處理未知的棋子類型
+              console.warn(`未知的棋子類型: ${piece.type}`)
+              break
+          }
+          // 白方用大寫
+          if (piece.color === 'white') {
+            pieceSymbol = pieceSymbol.toUpperCase()
+          }
+          fen += pieceSymbol
+        }
+      }
+      // 處理行尾的空格
+      if (emptyCount > 0) {
+        fen += emptyCount
+        emptyCount = 0
+      }
+      // 除了最後一行，每行加上'/'
+      if (row < SIZE - 1) {
+        fen += '/'
+      }
+    }
+
+    // 添加當前回合方
+    fen += ` ${whoesTurn === 'white' ? 'w' : 'b'}`
+
+    // 添加王車易位權限（這裡簡化處理）
+    fen += ' KQkq'
+
+    // 添加過路兵位置（這裡簡化處理）
+    fen += ' -'
+
+    // 添加半回合計數和全回合數
+    fen += ' 0 1'
+
+    return fen
+  }
+
+  // 解析棋盤座標
+  const parseSquare = (algebraic) => {
+    const col = algebraic.charCodeAt(0) - 'a'.charCodeAt(0)
+    const row = 8 - parseInt(algebraic[1], 10)
+    return { row, col }
+  }
+
+  // AI走棋
+  const makeAIMove = async () => {
+    if (!stockfishReady) {
+      console.error('Stockfish引擎未就緒')
+      return
+    }
+
+    try {
+      // 生成當前局面的FEN
+      const fen = generateFEN()
+
+      // 設置當前局面
+      await stockfishService.setPosition(fen)
+
+      // 獲取最佳走法
+      const bestMove = await stockfishService.getBestMove(15) // 搜索深度15
+
+      if (bestMove && bestMove.length >= 4) {
+        // 解析走法
+        const fromSquare = parseSquare(bestMove.substring(0, 2))
+        const toSquare = parseSquare(bestMove.substring(2, 4))
+
+        // 為AI移動設置選中狀態
+        setSelectedStatus({
+          piece: [fromSquare.row][fromSquare.col],
+          position: { row: fromSquare.row, col: fromSquare.col },
+        })
+
+        // 設置有效移動
+        setValidMoves({
+          row: toSquare.row,
+          col: toSquare.col,
+        })
+
+        movePiece(toSquare.row, toSquare.col)
+      }
+    } catch (error) {
+      console.error('AI走子時發生錯誤:', error)
+    }
+  }
+
   const movePiece = (
     row,
     col,
@@ -558,6 +685,9 @@ function ChessBoard() {
           // TODO: AI 走子
           setWhoesTurn('black')
           // 在玩家（白方）移動後，觸發 AI（黑方）走子
+          queueMicrotask(() => {
+            makeAIMove()
+          })
         } else if (whoesTurn === 'black') {
           setWhoesTurn('white')
         }
@@ -638,6 +768,18 @@ function ChessBoard() {
     })
     return canMove ? 'canMove' : null
   }
+
+  useEffect(() => {
+    const mounted = async () => {
+      try {
+        await stockfishService.init()
+        setStockfishReady(true)
+      } catch (error) {
+        console.error('Stockfish引擎初始化失敗:', error)
+      }
+    }
+    mounted()
+  }, [])
 
   return (
     <div className='chess-board'>
