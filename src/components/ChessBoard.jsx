@@ -288,6 +288,42 @@ function ChessBoard() {
     return moves
   }
 
+  // 定義騎士可以移動的範圍
+  const getAvailableMovesForKnight = (row, col) => {
+    const { color } = board[row][col]
+    const directions = [
+      { dx: 1, dy: 2 },
+      { dx: -1, dy: 2 },
+      { dx: 1, dy: -2 },
+      { dx: -1, dy: -2 },
+      { dx: 2, dy: 1 },
+      { dx: -2, dy: 1 },
+      { dx: 2, dy: -1 },
+      { dx: -2, dy: -1 },
+    ]
+    const moves = []
+
+    // 檢查每個方向
+    directions.forEach(({ dx, dy }) => {
+      // 計算座標
+      const newCol = col + dx
+      const newRow = row + dy
+
+      // 檢查是否在棋盤範圍內
+      if (isValidPosition(newRow, newCol)) {
+        // 獲取目標棋子
+        const targetPiece = board[newRow][newCol]
+
+        // 檢查目標方格是否為空或異色
+        if (targetPiece === null || targetPiece.color !== color) {
+          moves.push({ row: newRow, col: newCol })
+        }
+      }
+    })
+
+    return moves
+  }
+
   // 定義棋子可以移動的範圍
   const getAvailableMoves = (row, col) => {
     const piece = board[row][col]
@@ -300,6 +336,8 @@ function ChessBoard() {
         return getAvailableMovesForQueen(row, col)
       case 'rook':
         return getAvailableMovesForRook(row, col)
+      case 'knight':
+        return getAvailableMovesForKnight(row, col)
       case 'pawn':
         return getAvailableMovesForPawn(row, col)
       default:
