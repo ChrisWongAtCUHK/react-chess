@@ -623,7 +623,6 @@ function ChessBoard() {
     try {
       // 生成當前局面的FEN
       const fen = generateFEN(currentBoard, currentTurn)
-      console.log('當前局面FEN:', fen)
 
       // 設置當前局面
       await stockfishService.setPosition(fen)
@@ -678,7 +677,6 @@ function ChessBoard() {
     const originalCol = currentSelectedStatus.position.col
     const originPiece = currentBoard[originalRow][originalCol]
 
-    console.log(moves)
     // 判斷移動是否合法
     moves.forEach((validDir) => {
       if (validDir.row === row && validDir.col === col) {
