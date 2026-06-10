@@ -642,14 +642,15 @@ function ChessBoard() {
         })
 
         // 設置有效移動
-        setValidMoves([
+        const moves = [
           {
             row: toSquare.row,
             col: toSquare.col,
           },
-        ])
+        ]
+        setValidMoves(moves)
 
-        movePiece(toSquare.row, toSquare.col)
+        movePiece(toSquare.row, toSquare.col, moves)
       }
     } catch (error) {
       console.error('AI走子時發生錯誤:', error)
@@ -659,14 +660,15 @@ function ChessBoard() {
   const movePiece = (
     row,
     col,
+    moves = validMoves,
     originalRow = selectedStatus.position.row,
     originalCol = selectedStatus.position.col,
   ) => {
     const originPiece = board[originalRow][originalCol]
 
-    console.log(validMoves)
+    console.log(moves)
     // 判斷移動是否合法
-    validMoves.forEach((validDir) => {
+    moves.forEach((validDir) => {
       if (validDir.row === row && validDir.col === col) {
         // 移動棋子
         const tempBoard = board.map((r) => [...r])
