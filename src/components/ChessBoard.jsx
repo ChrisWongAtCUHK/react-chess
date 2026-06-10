@@ -324,6 +324,49 @@ function ChessBoard() {
     return moves
   }
 
+  // 定義主教可以移動的範圍
+  const getAvailableMovesForBishop = (row, col) => {
+    const { color } = board[row][col]
+    const directions = [
+      { dx: 1, dy: 1 },
+      { dx: -1, dy: 1 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: -1 },
+    ]
+    const moves = []
+
+    // 檢查每個方向
+    directions.forEach(({ dx, dy }) => {
+      let newCol = col
+      let newRow = row
+      let canMove = true
+
+      while (canMove) {
+        newCol += dx
+        newRow += dy
+
+        if (isValidPosition(newRow, newCol)) {
+          // 獲取目標棋子
+          const targetPiece = board[newRow][newCol]
+
+          // 檢查目標方格是否為空或異色
+          if (targetPiece === null || targetPiece.color !== color) {
+            moves.push({ row: newRow, col: newCol })
+          }
+
+          // 檢查目標方格是否為空
+          if (targetPiece != null) {
+            canMove = false
+          }
+        } else {
+          canMove = false
+        }
+      }
+    })
+
+    return moves
+  }
+
   // 定義棋子可以移動的範圍
   const getAvailableMoves = (row, col) => {
     const piece = board[row][col]
@@ -338,6 +381,8 @@ function ChessBoard() {
         return getAvailableMovesForRook(row, col)
       case 'knight':
         return getAvailableMovesForKnight(row, col)
+      case 'bishop':
+        return getAvailableMovesForBishop(row, col)
       case 'pawn':
         return getAvailableMovesForPawn(row, col)
       default:
