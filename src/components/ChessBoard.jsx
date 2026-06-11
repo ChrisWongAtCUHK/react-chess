@@ -43,7 +43,7 @@ function ChessBoard() {
 
     return newBoard
   })
-  const [whoesTurn, setWhoesTurn] = useState('white')
+  const [whoseTurn, setWhoseTurn] = useState('white')
   const [selectedStatus, setSelectedStatus] = useState({
     piece: {},
     position: {},
@@ -507,7 +507,7 @@ function ChessBoard() {
   }
 
   const checkWin = (currentBoard = board) => {
-    const color = whoesTurn === 'white' ? 'black' : 'white'
+    const color = whoseTurn === 'white' ? 'black' : 'white'
     const kingPosition = findKing(color, currentBoard)
 
     if (!kingPosition) return true // 國王不見了，直接判輸
@@ -582,7 +582,7 @@ function ChessBoard() {
   }
 
   // 生成FEN格式棋盤狀態（用於Stockfish）
-  const generateFEN = (currentBoard = board, currentTurn = whoesTurn) => {
+  const generateFEN = (currentBoard = board, currentTurn = whoseTurn) => {
     let fen = ''
     let emptyCount = 0
 
@@ -665,7 +665,7 @@ function ChessBoard() {
   }
 
   // AI走棋
-  const makeAIMove = async (currentBoard = board, currentTurn = whoesTurn) => {
+  const makeAIMove = async (currentBoard = board, currentTurn = whoseTurn) => {
     if (!stockfishReady) {
       console.error('Stockfish引擎未就緒')
       return
@@ -720,7 +720,7 @@ function ChessBoard() {
     row,
     col,
     moves = validMoves,
-    currentTurn = whoesTurn,
+    currentTurn = whoseTurn,
     currentSelectedStatus = selectedStatus,
     currentBoard = board,
   ) => {
@@ -755,13 +755,13 @@ function ChessBoard() {
         if (currentTurn === 'white') {
           const myTurn = 'black'
           // AI 走子
-          setWhoesTurn(myTurn)
+          setWhoseTurn(myTurn)
           // 在玩家（白方）移動後，觸發 AI（黑方）走子
           queueMicrotask(() => {
             makeAIMove(tempBoard, myTurn)
           })
         } else if (currentTurn === 'black') {
-          setWhoesTurn('white')
+          setWhoseTurn('white')
         }
 
         cleanSelected()
@@ -771,7 +771,7 @@ function ChessBoard() {
 
   const clickPiece = (row, col) => {
     // 如果是 AI 的回合（黑色方），不允許玩家操作
-    if (whoesTurn === 'black' && board[row][col]?.color !== 'black') {
+    if (whoseTurn === 'black' && board[row][col]?.color !== 'black') {
       return
     }
 
@@ -785,7 +785,7 @@ function ChessBoard() {
         board[row][col].color === selectedStatus.piece.color)
     ) {
       // 只允許移動當前回合方的棋子
-      if (board[row][col].color !== whoesTurn) {
+      if (board[row][col].color !== whoseTurn) {
         return
       }
 
