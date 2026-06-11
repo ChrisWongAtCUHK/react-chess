@@ -48,6 +48,13 @@ const isValidPosition = (row, col) => {
   return false
 }
 
+// 解析棋盤座標
+const parseSquare = (algebraic) => {
+  const col = algebraic.charCodeAt(0) - 'a'.charCodeAt(0)
+  const row = 8 - parseInt(algebraic[1], 10)
+  return { row, col }
+}
+
 function ChessBoard() {
   const [board, setBoard] = useState(() => initialBoardState())
   const [whoseTurn, setWhoseTurn] = useState('white')
@@ -653,13 +660,6 @@ function ChessBoard() {
     fen += ' 0 1'
 
     return fen
-  }
-
-  // 解析棋盤座標
-  const parseSquare = (algebraic) => {
-    const col = algebraic.charCodeAt(0) - 'a'.charCodeAt(0)
-    const row = 8 - parseInt(algebraic[1], 10)
-    return { row, col }
   }
 
   // AI走棋
