@@ -751,13 +751,14 @@ function ChessBoard() {
         }
 
         if (currentTurn === 'white') {
-          const myTurn = 'black'
+          const nextTurn = 'black'
           // AI 走子
-          setWhoseTurn(myTurn)
-          // 在玩家（白方）移動後，觸發 AI（黑方）走子
-          queueMicrotask(() => {
-            makeAIMove(tempBoard, myTurn)
-          })
+          setWhoseTurn(nextTurn)
+          // Schedule AI move safely after the current execution context wraps up
+
+          setTimeout(() => {
+            makeAIMove(tempBoard, nextTurn)
+          }, 100)
         } else if (currentTurn === 'black') {
           setWhoseTurn('white')
         }
