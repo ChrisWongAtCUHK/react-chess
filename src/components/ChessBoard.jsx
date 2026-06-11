@@ -39,6 +39,15 @@ const initialBoardState = () => {
   return newBoard
 }
 
+// 檢查位置是否在棋盤內
+const isValidPosition = (row, col) => {
+  if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) {
+    return true
+  }
+
+  return false
+}
+
 function ChessBoard() {
   const [board, setBoard] = useState(() => initialBoardState())
   const [whoseTurn, setWhoseTurn] = useState('white')
@@ -68,15 +77,6 @@ function ChessBoard() {
 
   const canMove = () => {
     return validMoves.length > 0
-  }
-
-  // 檢查位置是否在棋盤內
-  const isValidPosition = (row, col) => {
-    if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) {
-      return true
-    }
-
-    return false
   }
 
   // 定義士兵可以移動的範圍
